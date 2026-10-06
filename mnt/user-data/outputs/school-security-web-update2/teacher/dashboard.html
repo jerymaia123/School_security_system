@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faculty Dashboard</title><link rel="stylesheet" href="../css/style.css"><link rel="stylesheet" href="../css/announcements.css">
+</head>
+<body class="protected" data-root="../">
+<main class="card wide">
+  <h1>Faculty Dashboard</h1>
+  <p class="subtitle" id="welcome"></p>
+
+  <h2 class="section-title">Post an announcement</h2>
+  <form id="postForm">
+    <label for="title">Title</label>
+    <input id="title" maxlength="150" required>
+    <label for="content">Message</label>
+    <textarea id="content" rows="4" required></textarea>
+    <div id="msg" class="message" hidden></div>
+    <button type="submit" id="postBtn">Post announcement</button>
+  </form>
+
+  <h2 class="section-title">Announcements</h2>
+  <div id="announcements"></div>
+
+  <button class="logout" onclick="logout()">Log out</button>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/announcements.js"></script>
+<script>
+requireRole(["teacher"]).then((p) => {
+    document.getElementById("welcome").textContent = "Welcome, " + p.full_name + ".";
+    loadAnnouncements("announcements", p.id);
+
+    document.getElementById("postForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("postBtn");
+        btn.disabled = true; showMessage("msg", "");
+
+        const result = await postAnnouncement(
+            document.getElementById("title").value.trim(),
+            document.getElementById("content").value.trim()
+        );
+
+        btn.disabled = false;
+        if (result.error) return showMessage("msg", result.error);
+
+        e.target.reset();
+        showMessage("msg", "Announcement posted.", "success");
+        loadAnnouncements("announcements", p.id);
+    });
+});
+</script>
+</body></html>

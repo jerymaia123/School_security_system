@@ -1,0 +1,13 @@
+.section-title { font-size: 17px; margin: 28px 0 4px; }
+.announcement { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 18px; margin-top: 12px; background: #f8fafc; }
+.announcement h3 { font-size: 16px; margin-bottom: 6px; }
+.announcement p { font-size: 14px; color: #334155; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.announcement .meta { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+                      margin-top: 12px; font-size: 12px; color: #64748b; }
+.announcement .del { width: auto; margin: 0; padding: 5px 10px; font-size: 12px; background: #fee2e2; color: #b91c1c; }
+.announcement .del:hover { background: #fecaca; }
+.empty { color: #64748b; font-size: 14px; margin-top: 12px; }
+textarea { width: 100%; padding: 11px 13px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; }
+textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.logout { background: #64748b; }
+.logout:hover { background: #475569; }

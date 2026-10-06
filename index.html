@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>School Security System</title><link rel="stylesheet" href="css/style.css"></head>
+<body data-root="">
+<p>Loading...</p>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(async () => {
+    const p = await getMyProfile();
+    location.replace(p && p.status === "active" ? HOME[p.role] : "login.html");
+})();
+</script>
+</body></html>

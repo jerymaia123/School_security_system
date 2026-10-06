@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register - School Security System</title><link rel="stylesheet" href="css/style.css">
+<style>textarea{width:100%;padding:11px 13px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical}
+textarea:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}</style></head>
+<body data-root="">
+<div class="card">
+  <h1>Create account</h1>
+  <p class="subtitle">Students: get your registration number from your faculty first.</p>
+  <form id="regForm">
+    <label for="role">I am a</label>
+    <select id="role">
+      <option value="student">Student</option>
+      <option value="teacher">Faculty</option>
+      <option value="guard">Guard</option>
+    </select>
+
+    <div class="row">
+      <div><label for="first_name">First name</label><input id="first_name" required></div>
+      <div><label for="last_name">Last name</label><input id="last_name" required></div>
+    </div>
+
+    <div id="studentFields">
+      <div class="row">
+        <div><label for="student_id">Student ID</label><input id="student_id" placeholder="e.g. 240111004440"></div>
+        <div><label for="reg_code">Registration number</label>
+          <input id="reg_code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="off" placeholder="8 digits" title="8 digits from your faculty"></div>
+      </div>
+      <div class="row">
+        <div><label for="gender">Gender</label>
+          <select id="gender"><option value="">Select</option><option>Male</option><option>Female</option></select></div>
+        <div><label for="birth_date">Birthday</label><input id="birth_date" type="date"></div>
+      </div>
+      <div class="row">
+        <div><label for="grade_level">Year level</label>
+          <select id="grade_level"><option value="">Select</option><option>1st Year</option><option>2nd Year</option><option>3rd Year</option><option>4th Year</option></select></div>
+        <div><label for="section">Section</label><input id="section" placeholder="e.g. IT3B"></div>
+      </div>
+      <label for="contact_number">Contact number</label>
+      <input id="contact_number" type="tel" inputmode="tel" pattern="[0-9+ \-]{7,20}" maxlength="20" placeholder="e.g. 09123456789">
+      <label for="address">Address</label>
+      <textarea id="address" rows="2" maxlength="250"></textarea>
+    </div>
+
+    <div id="staffFields" hidden>
+      <label for="teacher_id">Employee ID (8-15 digits)</label>
+      <input id="teacher_id" inputmode="numeric" pattern="[0-9]{8,15}" maxlength="15" title="8 to 15 digits">
+      <div id="deptField"><label for="department">Department</label><input id="department"></div>
+      <label for="staff_code">Staff code (6 digits, given by the school)</label>
+      <input id="staff_code" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" title="6 digits">
+    </div>
+
+    <label for="username">Username (letters/numbers, no @)</label>
+    <input id="username" autocomplete="username" required minlength="3" pattern="[A-Za-z0-9._\-]+">
+    <label for="email">Email</label><input id="email" type="email" autocomplete="email" required>
+    <label for="password">Password (min. 8 characters)</label>
+    <input id="password" type="password" autocomplete="new-password" required minlength="8">
+
+    <div id="msg" class="message" hidden></div>
+    <button type="submit" id="btn">Register</button>
+  </form>
+  <p class="link">Already registered? <a href="login.html">Login</a></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script>
+const val = (id) => document.getElementById(id).value.trim();
+const roleSelect = document.getElementById("role");
+document.getElementById("birth_date").max = new Date().toISOString().slice(0, 10);
+
+roleSelect.addEventListener("change", () => {
+    const r = roleSelect.value;
+    document.getElementById("studentFields").hidden = r !== "student";
+    document.getElementById("staffFields").hidden   = r === "student";
+    document.getElementById("deptField").hidden     = r !== "teacher";
+});
+
+document.getElementById("regForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const role = roleSelect.value;
+
+    if (role === "student") {
+        if (!val("student_id"))                          return showMessage("msg", "Student ID is required.");
+        if (!/^[0-9]{8}$/.test(val("reg_code")))        return showMessage("msg", "Registration number must be 8 digits (ask your faculty).");
+        if (!val("gender"))                              return showMessage("msg", "Please select your gender.");
+        if (!val("birth_date"))                          return showMessage("msg", "Please enter your birthday.");
+        if (!val("grade_level"))                         return showMessage("msg", "Please select your year level.");
+        if (!/^[0-9+ \-]{7,20}$/.test(val("contact_number"))) return showMessage("msg", "Please enter a valid contact number.");
+        if (!val("address"))                             return showMessage("msg", "Please enter your address.");
+    } else {
+        if (!/^[0-9]{8,15}$/.test(val("teacher_id")))   return showMessage("msg", "Employee ID must be 8 to 15 digits.");
+        if (!/^[0-9]{6}$/.test(val("staff_code")))      return showMessage("msg", "Staff code must be 6 digits.");
+    }
+
+    const btn = document.getElementById("btn");
+    btn.disabled = true; showMessage("msg", "");
+    const s = role === "student";
+
+    const result = await registerUser({
+        role, first_name: val("first_name"), last_name: val("last_name"),
+        username: val("username").toLowerCase(), email: val("email"),
+        password: document.getElementById("password").value,
+        staff_code: s ? "" : val("staff_code"), reg_code: s ? val("reg_code") : "",
+        student_id: s ? val("student_id") : "", gender: s ? val("gender") : "", birth_date: s ? val("birth_date") : "",
+        grade_level: s ? val("grade_level") : "", section: s ? val("section") : "",
+        contact_number: s ? val("contact_number") : "", address: s ? val("address") : "",
+        teacher_id: s ? "" : val("teacher_id"), department: role === "teacher" ? val("department") : ""
+    });
+
+    btn.disabled = false;
+    if (result.error)  return showMessage("msg", result.error);
+    if (result.notice) return showMessage("msg", result.notice, "success");
+    location.replace(result.redirect);
+});
+</script>
+</body></html>

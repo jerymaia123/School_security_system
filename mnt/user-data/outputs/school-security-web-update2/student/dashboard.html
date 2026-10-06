@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Dashboard</title><link rel="stylesheet" href="../css/style.css"><link rel="stylesheet" href="../css/announcements.css">
+<style>
+  .info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; margin: 22px 0 6px; }
+  .info label { margin: 0 0 3px; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+  .info strong { font-size: 15px; word-break: break-word; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .badge.active { background: #dcfce7; color: #15803d; }
+  .badge.inactive { background: #f1f5f9; color: #64748b; }
+  @media (max-width: 500px) { .info { grid-template-columns: 1fr; } }
+</style></head>
+<body class="protected" data-root="../">
+<main class="card wide">
+  <h1>Student Dashboard</h1>
+  <p class="subtitle" id="welcome"></p>
+  <div id="info" class="info"></div>
+  <div id="msg" class="message" hidden></div>
+
+  <h2 class="section-title">Announcements</h2>
+  <div id="announcements"></div>
+
+  <button class="logout" onclick="logout()">Log out</button>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/announcements.js"></script>
+<script>
+requireRole(["student"]).then(async (p) => {
+    document.getElementById("welcome").textContent = "Welcome, " + p.full_name + ".";
+    loadAnnouncements("announcements");
+
+    const { data: s, error } = await db.from("students")
+        .select("student_id, first_name, middle_name, last_name, grade_level, section, contact_number, email, birth_date, gender, address, enrollment_status")
+        .eq("profile_id", p.id)
+        .maybeSingle();
+
+    if (error || !s) {
+        console.error(error);
+        return showMessage("msg", "Your student record could not be loaded.");
+    }
+
+    const fields = [
+        ["Student ID", s.student_id],
+        ["Enrollment status", s.enrollment_status],
+        ["Name", [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ")],
+        ["Year level", s.grade_level],
+        ["Section", s.section],
+        ["Email", s.email],
+        ["Contact number", s.contact_number],
+        ["Birth date", s.birth_date],
+        ["Gender", s.gender],
+        ["Address", s.address]
+    ];
+
+    const box = document.getElementById("info");
+    fields.forEach(([label, value]) => {
+        const div = document.createElement("div");
+        const l = document.createElement("label");
+        l.textContent = label;
+        const v = document.createElement("strong");
+        if (label === "Enrollment status") {
+            v.className = "badge " + value;
+            v.textContent = value.toUpperCase();
+        } else {
+            v.textContent = value || "-";
+        }
+        div.append(l, v);
+        box.appendChild(div);
+    });
+});
+</script>
+</body></html>
