@@ -15,21 +15,44 @@ function setupScanner(onToken) {
         scanner = null;
     }
 
+    async function onDecoded(text) {
+        if (busy) return;
+        busy = true;
+        await stop();
+        document.getElementById("reader").hidden = true;
+        onToken(text.trim());
+    }
+
     async function start() {
         busy = false;
         showMessage("msg", "");
+
+        if (typeof Html5Qrcode === "undefined") {
+            return showMessage("msg", "The scanner could not load. Check your internet connection, then refresh the page (Ctrl+F5).");
+        }
+
+        await stop();
+        const reader = document.getElementById("reader");
+        reader.hidden = false;                       // the camera needs a visible box
         scanner = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
         try {
-            await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 240 }, async (text) => {
-                if (busy) return;
-                busy = true;
-                await stop();
-                onToken(text.trim());
-            }, () => {});
-        } catch (e) {
-            console.error(e);
-            scanner = null;
-            showMessage("msg", "Camera unavailable. Allow camera access (needs https or localhost), or type the code below.");
+            await scanner.start({ facingMode: "environment" }, config, onDecoded, () => {});
+        } catch (first) {
+            try {                                    // no back camera (e.g. laptop): use the first camera
+                const cams = await Html5Qrcode.getCameras();
+                if (!cams.length) throw first;
+                await scanner.start(cams[0].id, config, onDecoded, () => {});
+            } catch (e) {
+                console.error(e);
+                scanner = null;
+                reader.hidden = true;
+                const blocked = /permission|denied|notallowed/i.test(String(e));
+                showMessage("msg", blocked
+                    ? "Camera access is blocked. Click the lock icon next to the web address, set Camera to Allow, then reload. Or type the code below."
+                    : "Camera unavailable. Close other apps that use the camera, or type the code below.");
+            }
         }
     }
 
@@ -37,7 +60,7 @@ function setupScanner(onToken) {
     document.getElementById("manualForm").addEventListener("submit", (e) => {
         e.preventDefault();
         const t = document.getElementById("manualToken").value.trim();
-        if (t) { stop(); onToken(t); }
+        if (t) { stop(); document.getElementById("reader").hidden = true; onToken(t); }
     });
     return { start, stop };
 }
