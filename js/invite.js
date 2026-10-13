@@ -1,4 +1,4 @@
-// Faculty page: generate a registration number for a student ID.
+// Faculty page: generate a registration number for a student ID, and cancel unused ones.
 ICON.invite = "＋";
 NAVS.teacher.splice(2, 0, ["invite", "Student Registration"]);
 
@@ -13,21 +13,38 @@ async function pageInvite() {
     b.append(f);
     view.append(p);
 
-    const { p: lp, b: lb } = panel("Registration numbers", "Each number works once and expires after 7 days.");
+    const { p: lp, b: lb } = panel("Registration numbers",
+        "Each number works once and expires after 7 days. Entered a wrong ID? Remove the number and generate a new one.");
     view.append(lp);
 
     async function refresh() {
         lb.textContent = "";
         const { data, error } = await db.from("student_invites")
-            .select("student_id, code, created_at, expires_at, used_at")
+            .select("id, student_id, code, created_at, expires_at, used_at")
             .order("created_at", { ascending: false }).limit(50);
         if (error) { console.error(error); return lb.append(h("p", "empty", "Could not load the list.")); }
         if (!data.length) return lb.append(h("p", "empty", "No registration numbers yet."));
+
         data.forEach((i) => {
             const status = i.used_at ? "Used" : (new Date(i.expires_at) < new Date() ? "Expired" : "Pending");
             const row = h("div", "ann");
             row.append(h("h4", "", i.student_id + "  •  " + status),
                        h("p", "", status === "Pending" ? "Registration number: " + i.code : "Created " + fmt(i.created_at)));
+
+            if (status !== "Used") {                       // used numbers stay as a record
+                const rm = h("button", "btn danger", "Remove");
+                rm.style.marginTop = "8px";
+                rm.onclick = async () => {
+                    if (!confirm("Remove the registration number for Student ID " + i.student_id + "?\nThe number will stop working.")) return;
+                    rm.disabled = true;
+                    const { error } = await db.from("student_invites").delete().eq("id", i.id).is("used_at", null);
+                    if (error) { console.error(error); showMessage("msg", "Could not remove the number."); rm.disabled = false; return; }
+                    showMessage("msg", "Registration number for " + i.student_id + " was removed.", "success");
+                    $("invResult").textContent = "";
+                    refresh();
+                };
+                row.append(rm);
+            }
             lb.append(row);
         });
     }
